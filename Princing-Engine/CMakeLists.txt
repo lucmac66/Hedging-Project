@@ -74,13 +74,14 @@ target_link_libraries(pricer_grpc_proto
     ${_PROTOBUF_LIBPROTOBUF}
 )
 
-add_executable(pricing_server pricing_server.cpp)
+add_executable(pricing_server pricing_server.cpp pricer.cpp json_reader.cpp )
 target_link_libraries(pricing_server
     pricer_grpc_proto
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
     ${PNL_LIBRARIES}
+    nlohmann_json::nlohmann_json
 )
 pnl_add_postbuild(pricing_server)
 
