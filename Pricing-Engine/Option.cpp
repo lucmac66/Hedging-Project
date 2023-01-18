@@ -2,6 +2,7 @@
 #include "pnl/pnl_matrix.h"
 #include "Option.hpp"
 #include "math.h"
+
 /// \brief Classe Option
 
 Option::Option(PnlVect *strikes, PnlVect *paymentDates, int size) {
@@ -22,6 +23,7 @@ Option::~Option() {}
  */
 double Option::payoff(const PnlMat *path, double rate)
 {
+    pnl_mat_print(path);
     // On set-up des variables pour calculer le payoff
     double payoff = 0;
     double asset = 0;

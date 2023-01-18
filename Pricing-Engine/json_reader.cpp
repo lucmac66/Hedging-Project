@@ -6,17 +6,17 @@
 
 void from_json(const nlohmann::json &j, PnlVect *&vect) {
     std::vector<double> stl_v = j.get<std::vector<double>>();
-    vect = pnl_vect_create_from_ptr(stl_v.size(), stl_v.data());
+    vect = pnl_vect_create_from_ptr((int)stl_v.size(), stl_v.data());
 }
 
 void from_json(const nlohmann::json &j, PnlMat *&mat) {
     std::vector<std::vector<double>> stl_m = j.get<std::vector<std::vector<double>>>();
-    int nLines = stl_m.size();
+    int nLines = (int)stl_m.size();
     if (nLines == 0) {
         mat = pnl_mat_create(0, 0);
         return;
     }
-    int nColumns = stl_m[0].size();
+    int nColumns = (int)stl_m[0].size();
     for (auto it : stl_m) {
         if (nColumns != it.size()) {
             std::cerr << "Matrix is not regular" << std::endl;

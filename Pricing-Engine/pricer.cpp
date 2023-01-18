@@ -34,14 +34,10 @@ void BlackScholesPricer::print() {
     pnl_mat_print(volatility);
 }
 
-void BlackScholesPricer::priceAndDeltas(const PnlMat *past, double currentDate, bool isMonitoringDate, double price, double &priceStdDev, PnlVect* &deltas, PnlVect* &deltasStdDev) {
-    price = 0.;
-    priceStdDev = 0.;
-    deltas = pnl_vect_create_from_zero(nAssets);
-    PnlVect* divids = pnl_vect_create_from_zero(nAssets);
-    deltasStdDev = pnl_vect_create_from_zero(nAssets);
-    Option* opt = new Option(strikes, paymentDates, nAssets);
-    BlackScholesModel* bs = new BlackScholesModel(interestRate, volatility, divids);
-    MonteCarlo* mc = new MonteCarlo(bs, opt, nSamples);
-    mc->priceAndDeltas(past, currentDate, isMonitoringDate, fdStep, price, priceStdDev, deltas, deltasStdDev);
+void BlackScholesPricer::priceAndDeltas(const PnlMat *past, double currentDate, bool isMonitoringDate, PnlVect *prices , PnlVect *deltas, PnlVect *deltasStdDev) {
+    PnlVect *divids = pnl_vect_create_from_zero(nAssets);
+    Option *opt = new Option(strikes, paymentDates, nAssets);
+    BlackScholesModel *bs = new BlackScholesModel(interestRate, volatility, divids);
+    MonteCarlo *mc = new MonteCarlo(bs, opt, nSamples);
+    mc->priceAndDeltas(past, currentDate, isMonitoringDate, fdStep, prices, deltas, deltasStdDev);
 }

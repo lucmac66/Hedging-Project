@@ -19,7 +19,7 @@ public:
      *
      * @return valeur de l'estimateur Monte Carlo
      */
-    void priceAndDeltas(const PnlMat *past, double epsilon, double currentDate, bool isMonitoringDate, double price, double priceStdDev, PnlVect *deltas, PnlVect *deltasStdDev);
+    void priceAndDeltas(const PnlMat *past, double epsilon, double currentDate, bool isMonitoringDate, PnlVect *prices, PnlVect *deltas, PnlVect *deltasStdDev);
 };
 
 

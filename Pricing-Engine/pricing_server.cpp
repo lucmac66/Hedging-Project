@@ -49,18 +49,18 @@ public:
     GrpcPricerImpl(BlackScholesPricer &pricer) : pricer(pricer) {}
 
     Status PriceAndDeltas(ServerContext *context, const PricingInput *input, PricingOutput *output) override {
-        double price, priceStdDev;
-        PnlVect *delta, *deltaStdDev;
+        PnlVect *prices = pnl_vect_create_from_zero(2);
+        PnlVect *delta = pnl_vect_create_from_zero(pricer.nAssets);
+        PnlVect *deltaStdDev = pnl_vect_create_from_zero(pricer.nAssets);
         bool isMonitoringDate = input->monitoringdatereached();
         double currentDate = input->time();
         PnlMat *past = convertPastToPnlMat(input);
         if (past == NULL) {
             return Status(grpc::StatusCode::INVALID_ARGUMENT, "Cannot read past");
         }
-        pnl_mat_print(past);
-        pricer.priceAndDeltas(past, currentDate, isMonitoringDate, price, priceStdDev, delta, deltaStdDev);
-        output->set_price(price);
-        output->set_pricestddev(priceStdDev);
+        pricer.priceAndDeltas(past, currentDate, isMonitoringDate, prices, delta, deltaStdDev);
+        output->set_price(pnl_vect_get(prices,0));
+        output->set_pricestddev(pnl_vect_get(prices, 1));
         for (int i = 0; i < delta->size; i++) {
             output->add_deltas(GET(delta, i));
             output->add_deltasstddev(GET(deltaStdDev, i));

@@ -22,7 +22,7 @@ public:
      * @param[in] T  maturité
      * @param[in] nbTimeSteps nombre de dates de constatation
      */
-    void asset(PnlMat *path, PnlRng *rng, double isMonitoring, double currentDate, const PnlMat *past, PnlVect *dates);
+    void asset(PnlMat *path, PnlRng *rng, double isMonitoring, double currentDate, const PnlMat *past, PnlVect *dates, double epsilon, int j);
 
     void shiftAsset(PnlMat *past, int j, double epsilon);
 
