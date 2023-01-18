@@ -4,51 +4,79 @@ using System.Linq;
 using System.Runtime;
 using System.Text;
 using System.Threading.Tasks;
-using Google.Protobuf.Collections;
 using GrpcPricing.Protos;
+using Google.Protobuf.Collections;
 using MarketData;
 using ParameterInfo;
 using MarketDataGeneration;
+using System.Collections.Generic;
 
 namespace ParserTools
 {
 	public class PastValues
 	{
-		List<DataFeed> past;
+		SortedDictionary<DateTime, Dictionary<String, double>> past;
 		MarketInfo mktInfo;
 
 		public PastValues(String docName)
 		{
-			this.past = MarketDataReader.ReadDataFeeds(docName);
+			past = new SortedDictionary<DateTime, Dictionary<String, double>>();
+			var pastValues = MarketDataReader.ReadDataFeeds(docName);
+			foreach(var value in pastValues)
+			{
+				past.Add(value.Date, value.SpotList);
+			}
 			this.mktInfo = new MarketInfo();
 		}
 
 		// Getter
-		public List<DataFeed> getPast() { return past; }
+		public SortedDictionary<DateTime, Dictionary<String, double>> getPast() { return past; }
 
 		// Tool that convert pastValues datas to Repeadted<PastLines> format
 		public RepeatedField<PastLines> Convert()
 		{
-			RepeatedField<PastLines> past = new RepeatedField<PastLines>();
-			foreach(var datafeed in past)
+			RepeatedField<PastLines> pastConverted = new RepeatedField<PastLines>();
+			foreach(var datafeed in past.Values)
 			{
 				PastLines pastLines = new PastLines();
-				foreach(var data in datafeed.Value)
+				foreach(var data in datafeed)
 				{
-					pastLines.Value.Add(data);
+					pastLines.Value.Add(data.Value);
 				}
-				past.Add(pastLines);
+				pastConverted.Add(pastLines);
 			}
-			return past;
+			return pastConverted;
 		}
 
+		// Generate new values in past
 		public void GenerateValues(TestParameters parameters)
 		{
-			List<ShareValue> values = ShareValueGenerator.Create(parameters, mktInfo);
+			List<ShareValue> values = ShareValueGenerator.Create(parameters, this.mktInfo);
 			foreach(var value in values)
 			{
-				if(past.Contains(value.DateOfPrice))
-			}
+				if (past.ContainsKey(value.DateOfPrice))
+				{
+					if (past[value.DateOfPrice].ContainsKey(value.Id))
+					{
+						past[value.DateOfPrice][value.Id] = value.Value;
+					}
+					else
+					{
+						past[value.DateOfPrice].Add(value.Id, value.Value);
+					}
+				}
+				else
+				{
+					Dictionary<String, double> dict = new Dictionary<string, double>();
+					dict.Add(value.Id, value.Value);
+					past.Add(value.DateOfPrice, dict);
+				}
+			}			
+		}
+
+		public void GenerateCSV(TestParameters parameters, String pathCSV)
+		{
+			ShareValueGenerator.Create(parameters, this.mktInfo, pathCSV);
 		}
 	}
 }

@@ -55,6 +55,10 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[2.51.0, )"
+            },
+            "MultiCashFlow.Common": {
+              "target": "Package",
+              "version": "[1.0.0.6, )"
             }
           },
           "imports": [
