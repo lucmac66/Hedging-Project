@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "8h9UZYYcyf06pBDVBunvbVjXziMljdW6K5k4FFsYsOsDvhfXA/fOhFUS7QnKJTSxKoYhZLCjni2iBAiVpiHwjw==",
+  "dgSpecHash": "vRAKfTePim/VZzVxceWOCKE4OfqHfzhXTzutHtdsrV6Uh1LhAWinI6uLekRHYavZYr6k/QVm6jwW8Ejb1GbAbA==",
   "success": true,
   "projectFilePath": "D:\\Hedging-Project-MultiFlow\\Multi-Flow-Derivatives-Hedging-Project\\GrpcClient\\GrpcClient.csproj",
   "expectedPackageFiles": [
