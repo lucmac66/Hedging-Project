@@ -9,6 +9,8 @@ using ParserTools;
 using CsvHelper;
 using TimeHandler;
 using System.Collections;
+using Grpc;
+using ParameterInfo.JsonUtils;
 
 namespace Multi_Flow_Derivatives_Hedging_Project.src.Model
 {
@@ -18,6 +20,9 @@ namespace Multi_Flow_Derivatives_Hedging_Project.src.Model
 
 		Dictionary<string, double> assetQuantities;
 		double freeRiskQuantity;
+		double oldPrice;
+
+		string output;
 
 		// Dates
 		DateTime maturity;
@@ -31,8 +36,9 @@ namespace Multi_Flow_Derivatives_Hedging_Project.src.Model
 		//Tool
 		IMathDateConverter mathDateConverterconverter;
 
-		public Portfolio(Parser parser)
+		public Portfolio(Parser parser) 
 		{
+			this.output = "";
 			assetQuantities = new Dictionary<string, double>();
 			freeRiskQuantity = 0;
 			testParameters = parser.GetTestParameters();
@@ -48,28 +54,33 @@ namespace Multi_Flow_Derivatives_Hedging_Project.src.Model
 			}
 		}
 		
-		// Change of asset quantities after deltas' calculations
-		public void changeQuantities(double[] deltas, DateTime t)
+		// Change of asset quantities after deltas' calculations and freeRiskQuantity
+		public void ChangeAllQuantities(DateTime t, PastValues past, double[] newDeltas)
 		{
-			foreach (var asset in assetQuantities)
-				{
-					assetQuantities[asset.Key] = deltas[testParameters.PricingParams.UnderlyingPositions[asset.Key]];
-					Console.WriteLine("Key = {0}, Value = {1}", asset.Key, asset.Value);
-				}
+			freeRiskQuantity = this.oldPrice;
+			foreach (var key in assetQuantities.Keys)
+			{
+				assetQuantities[key] = newDeltas[testParameters.PricingParams.UnderlyingPositions[key]];
+				freeRiskQuantity -= past.GetPast()[t][key] * assetQuantities[key];
+			}
+			double deltaTime = mathDateConverterconverter.ConvertToMathDistance(t, maturity);
+			freeRiskQuantity *= Math.Exp(rateFreeRisk * deltaTime);
+			SetPortfolioPrice(past);
 			currentTime = t;
 		}
 
-		// Change of free risk quantities after deltas' calculations
-		public void changeRiskFree(double price, double[] spots)
-		{ 
-			freeRiskQuantity = price;
+		public void FirstChangeAllQuantities(DateTime t, PastValues past, double[] newDeltas, double price)
+		{
+			this.oldPrice = price;
+			freeRiskQuantity = this.oldPrice;
 			foreach (var key in assetQuantities.Keys)
 			{
-				freeRiskQuantity -= spots[testParameters.PricingParams.UnderlyingPositions[key]]*assetQuantities[key];
+				assetQuantities[key] = newDeltas[testParameters.PricingParams.UnderlyingPositions[key]];
+				freeRiskQuantity -= past.GetPast()[t][key] * assetQuantities[key];
 			}
-			double deltaTime = mathDateConverterconverter.ConvertToMathDistance(currentTime, maturity);
+			double deltaTime = mathDateConverterconverter.ConvertToMathDistance(t, maturity);
 			freeRiskQuantity *= Math.Exp(rateFreeRisk * deltaTime);
-			Console.WriteLine(freeRiskQuantity.ToString());
+			SetPortfolioPrice(past);
 		}
 
 		// Tool
@@ -78,15 +89,34 @@ namespace Multi_Flow_Derivatives_Hedging_Project.src.Model
 			return mathDateConverterconverter.ConvertToMathDistance(startTime, t);
 		}
 
-		public double getPortfolioPrice(PastValues past)
+		public void SetPortfolioPrice(PastValues past)
 		{
 			double price = 0;
 			foreach(var key in assetQuantities.Keys)
 			{
-				price += assetQuantities[key] * past.getPast()[currentTime][key];
+				price += assetQuantities[key] * past.GetPast()[currentTime][key];
 			}
 			double deltaTime = mathDateConverterconverter.ConvertToMathDistance(currentTime, maturity);
-			return price + freeRiskQuantity / Math.Exp(rateFreeRisk * deltaTime);
+			this.oldPrice = price + freeRiskQuantity / Math.Exp(rateFreeRisk * deltaTime);
+		}
+
+		public void SetupOutput(GrpcClient client)
+		{
+			OutputData outputData = new OutputData()
+			{
+				OutputDate = currentTime,
+				PriceStdDev = client.GetStdPrice(),
+				Price = client.GetPrice(),
+				PortfolioValue = this.oldPrice,
+				Delta = client.GetDeltas(),
+				DeltaStdDev = client.GetStdDeltas()
+			};
+			output += JsonIO.ToJson(outputData) + "\n";
+		}
+
+		public void ExportCsv()
+		{
+			File.WriteAllText("output.json", output);
 		}
 
 		//Getters

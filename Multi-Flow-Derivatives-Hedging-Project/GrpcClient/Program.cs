@@ -9,8 +9,9 @@ namespace Grpc
 {
 	public class GrpcClient
 	{
-		public MathParameters parameters { get; set; }
-
+		// Try to keep the connection
+		GrpcPricer.GrpcPricerClient client;
+		// Server outputs
 		public double[] deltas;
 		public double[] stdDeltas;
 		public double price;
@@ -35,6 +36,13 @@ namespace Grpc
 			stdPrice = 0;
 			deltas = new double[parameters.MathPaymentDates.Length];
 			stdDeltas = new double[parameters.MathPaymentDates.Length];
+			var httpHandler = new HttpClientHandler();
+			// Return `true` to allow certificates that are untrusted/invalid
+			httpHandler.ServerCertificateCustomValidationCallback =
+				HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+			using var channel = GrpcChannel.ForAddress("http://localhost:50051",
+				new GrpcChannelOptions { HttpHandler = httpHandler });
+			this.client = new GrpcPricer.GrpcPricerClient(channel);
 		}
 
 		public void Request(RepeatedField<PastLines> past, bool isMonitoringDate, double t)
@@ -45,17 +53,15 @@ namespace Grpc
 			input.MonitoringDateReached = isMonitoringDate;
 			input.Time = t;
 
+			// Request to gRPC Server
 			var httpHandler = new HttpClientHandler();
 			// Return `true` to allow certificates that are untrusted/invalid
 			httpHandler.ServerCertificateCustomValidationCallback =
 				HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 			using var channel = GrpcChannel.ForAddress("http://localhost:50051",
 				new GrpcChannelOptions { HttpHandler = httpHandler });
-			var clien = new GrpcPricer.GrpcPricerClient(channel);
-
-			// Request to gRPC Server
-
-			var output = clien.PriceAndDeltas(input);
+			this.client = new GrpcPricer.GrpcPricerClient(channel);
+			var output = this.client.PriceAndDeltas(input);
 			// Set new values
 			price = output.Price;
 			stdPrice = output.PriceStdDev;
@@ -65,24 +71,25 @@ namespace Grpc
 				stdDeltas[i] = output.DeltasStdDev[i];
 			}
 
+
 		}
 
 		//Getters
-		public double getPrice()
+		public double GetPrice()
 		{
 			return price;
 		}
 
-		public double getStdPrice()
+		public double GetStdPrice()
 		{
 			return stdPrice;
 		}
 
-		public double[] getDeltas()
+		public double[] GetDeltas()
 		{
 			return deltas;
 		}
-		public double[] getStdDeltas()
+		public double[] GetStdDeltas()
 		{
 			return stdDeltas;
 		}

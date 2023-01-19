@@ -79,11 +79,11 @@ void BlackScholesModel::asset(PnlMat *path, PnlRng* rng, double isMonitoring, do
             timeStep = pnl_vect_get(dates, k + 1) - pnl_vect_get(dates, k);
         }
     }
+    
     pnl_vect_free(&L);
     pnl_vect_free(&brownian);
     pnl_vect_free(&copy);
     pnl_vect_free(&lastValues);
-    pnl_mat_free(&G);
 }
 
 void BlackScholesModel::shiftAsset(PnlMat *path, const PnlMat *past, bool isMonitoring, double epsilon, int j) {

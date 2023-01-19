@@ -17,16 +17,14 @@ namespace ParserTools
 	public class PastValues
 	{
 		SortedDictionary<DateTime, Dictionary<String, double>> past;
-
 		public PastValues(String docName, TestParameters parameters)
 		{
-			past = new SortedDictionary<DateTime, Dictionary<String, double>>();
-			var pastValues = MarketDataReader.ReadDataFeeds(docName);
+			this.past = new SortedDictionary<DateTime, Dictionary<String, double>>();
+			List<DataFeed> pastValues = MarketDataReader.ReadDataFeeds(docName);
 			foreach(var value in pastValues)
-			{
+			{ 
 				past.Add(value.Date, value.SpotList);
 			}
-			
 		}
 
 		public PastValues(List<ShareValue> list)
@@ -56,26 +54,29 @@ namespace ParserTools
 		}
 
 		// Getter
-		public SortedDictionary<DateTime, Dictionary<String, double>> getPast() { return past; }
+		public SortedDictionary<DateTime, Dictionary<String, double>> GetPast() { return past; }
 
 		// Tool that convert pastValues datas to Repeadted<PastLines> format
-		public RepeatedField<PastLines> Convert(DateTime T)
-		{
+		public RepeatedField<PastLines> Convert(List<DateTime> list)
+		{;
 			RepeatedField<PastLines> pastConverted = new RepeatedField<PastLines>();
-			foreach (var datafeed in past.Keys)
-				if (datafeed <= T) {
-					PastLines pastLines = new PastLines();
-					foreach (var data in past[datafeed])
-					{
-						pastLines.Value.Add(data.Value);
-					}
-					pastConverted.Add(pastLines);
-				}
-				else
+			foreach (var datafeed in list) 
+			{ 
+				PastLines lines = new PastLines();
+				foreach (var data in past[datafeed])
 				{
-					return pastConverted;
+					lines.Value.Add(data.Value);
 				}
+				pastConverted.Add(lines);
+			}
 			return pastConverted;
+		}
+
+		public void PrintDates()
+		{
+			foreach (var date in past.Keys) {
+				Console.WriteLine(date);
+			}
 		}
 	}
 }
