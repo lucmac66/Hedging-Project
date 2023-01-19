@@ -10,15 +10,15 @@ using MarketData;
 using ParameterInfo;
 using MarketDataGeneration;
 using System.Collections.Generic;
+using Google.Protobuf.WellKnownTypes;
 
 namespace ParserTools
 {
 	public class PastValues
 	{
 		SortedDictionary<DateTime, Dictionary<String, double>> past;
-		MarketInfo mktInfo;
 
-		public PastValues(String docName)
+		public PastValues(String docName, TestParameters parameters)
 		{
 			past = new SortedDictionary<DateTime, Dictionary<String, double>>();
 			var pastValues = MarketDataReader.ReadDataFeeds(docName);
@@ -26,33 +26,13 @@ namespace ParserTools
 			{
 				past.Add(value.Date, value.SpotList);
 			}
-			this.mktInfo = new MarketInfo();
+			
 		}
 
-		// Getter
-		public SortedDictionary<DateTime, Dictionary<String, double>> getPast() { return past; }
-
-		// Tool that convert pastValues datas to Repeadted<PastLines> format
-		public RepeatedField<PastLines> Convert()
+		public PastValues(List<ShareValue> list)
 		{
-			RepeatedField<PastLines> pastConverted = new RepeatedField<PastLines>();
-			foreach(var datafeed in past.Values)
-			{
-				PastLines pastLines = new PastLines();
-				foreach(var data in datafeed)
-				{
-					pastLines.Value.Add(data.Value);
-				}
-				pastConverted.Add(pastLines);
-			}
-			return pastConverted;
-		}
-
-		// Generate new values in past
-		public void GenerateValues(TestParameters parameters)
-		{
-			List<ShareValue> values = ShareValueGenerator.Create(parameters, this.mktInfo);
-			foreach(var value in values)
+			this.past = new SortedDictionary<DateTime, Dictionary<String, double>>();
+			foreach (var value in list)
 			{
 				if (past.ContainsKey(value.DateOfPrice))
 				{
@@ -67,16 +47,36 @@ namespace ParserTools
 				}
 				else
 				{
-					Dictionary<String, double> dict = new Dictionary<string, double>();
+					Dictionary<string, double> dict = new Dictionary<string, double>();
 					dict.Add(value.Id, value.Value);
 					past.Add(value.DateOfPrice, dict);
 				}
-			}			
+			}
+
 		}
 
-		public void GenerateCSV(TestParameters parameters, String pathCSV)
+		// Getter
+		public SortedDictionary<DateTime, Dictionary<String, double>> getPast() { return past; }
+
+		// Tool that convert pastValues datas to Repeadted<PastLines> format
+		public RepeatedField<PastLines> Convert(DateTime T)
 		{
-			ShareValueGenerator.Create(parameters, this.mktInfo, pathCSV);
+			RepeatedField<PastLines> pastConverted = new RepeatedField<PastLines>();
+			foreach (var datafeed in past.Keys)
+				if (datafeed <= T) {
+					PastLines pastLines = new PastLines();
+					foreach (var data in past[datafeed])
+					{
+						pastLines.Value.Add(data.Value);
+					}
+					pastConverted.Add(pastLines);
+				}
+				else
+				{
+					return pastConverted;
+				}
+			return pastConverted;
 		}
 	}
 }
+

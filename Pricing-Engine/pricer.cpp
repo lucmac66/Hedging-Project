@@ -39,5 +39,7 @@ void BlackScholesPricer::priceAndDeltas(const PnlMat *past, double currentDate, 
     Option *opt = new Option(strikes, paymentDates, nAssets);
     BlackScholesModel *bs = new BlackScholesModel(interestRate, volatility, divids);
     MonteCarlo *mc = new MonteCarlo(bs, opt, nSamples);
-    mc->priceAndDeltas(past, currentDate, isMonitoringDate, fdStep, prices, deltas, deltasStdDev);
+    mc->priceAndDeltas(past, currentDate, isMonitoringDate, prices, deltas, deltasStdDev, fdStep);
+    mc->~MonteCarlo();
+
 }

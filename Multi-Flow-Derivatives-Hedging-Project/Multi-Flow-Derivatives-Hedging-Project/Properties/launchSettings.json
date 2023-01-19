@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Multi-Flow-Derivatives-Hedging-Project": {
+      "commandName": "Project",
+      "commandLineArgs": "D:\\3aif-main\\pcpmf\\params\\test-param.json"
+    }
+  }
+}

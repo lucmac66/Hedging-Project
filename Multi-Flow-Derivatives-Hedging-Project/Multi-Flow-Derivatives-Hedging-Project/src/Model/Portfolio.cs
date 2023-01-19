@@ -8,6 +8,7 @@ using ParameterInfo;
 using ParserTools;
 using CsvHelper;
 using TimeHandler;
+using System.Collections;
 
 namespace Multi_Flow_Derivatives_Hedging_Project.src.Model
 {
@@ -50,9 +51,10 @@ namespace Multi_Flow_Derivatives_Hedging_Project.src.Model
 		// Change of asset quantities after deltas' calculations
 		public void changeQuantities(double[] deltas, DateTime t)
 		{
-			foreach (var key in assetQuantities.Keys)
+			foreach (var asset in assetQuantities)
 				{
-					assetQuantities[key] += deltas[testParameters.PricingParams.UnderlyingPositions[key]];
+					assetQuantities[asset.Key] = deltas[testParameters.PricingParams.UnderlyingPositions[asset.Key]];
+					Console.WriteLine("Key = {0}, Value = {1}", asset.Key, asset.Value);
 				}
 			currentTime = t;
 		}
@@ -67,12 +69,24 @@ namespace Multi_Flow_Derivatives_Hedging_Project.src.Model
 			}
 			double deltaTime = mathDateConverterconverter.ConvertToMathDistance(currentTime, maturity);
 			freeRiskQuantity *= Math.Exp(rateFreeRisk * deltaTime);
+			Console.WriteLine(freeRiskQuantity.ToString());
 		}
 
 		// Tool
 		public double MathCurrentTime(DateTime t)
 		{
 			return mathDateConverterconverter.ConvertToMathDistance(startTime, t);
+		}
+
+		public double getPortfolioPrice(PastValues past)
+		{
+			double price = 0;
+			foreach(var key in assetQuantities.Keys)
+			{
+				price += assetQuantities[key] * past.getPast()[currentTime][key];
+			}
+			double deltaTime = mathDateConverterconverter.ConvertToMathDistance(currentTime, maturity);
+			return price + freeRiskQuantity / Math.Exp(rateFreeRisk * deltaTime);
 		}
 
 		//Getters

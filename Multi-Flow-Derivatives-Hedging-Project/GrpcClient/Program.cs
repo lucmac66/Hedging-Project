@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using CsvHelper;
 using Google.Protobuf.Collections;
+using Grpc.Core;
 using Grpc.Net.Client;
 using GrpcPricing.Protos;
 using ModelConverter;
@@ -8,7 +9,6 @@ namespace Grpc
 {
 	public class GrpcClient
 	{
-		public GrpcPricer.GrpcPricerClient client { get; set; }
 		public MathParameters parameters { get; set; }
 
 		public double[] deltas;
@@ -16,7 +16,7 @@ namespace Grpc
 		public double price;
 		public double stdPrice;
 
-		public void Connexion()
+		public GrpcPricer.GrpcPricerClient Connexion()
 		{
 			var httpHandler = new HttpClientHandler();
 			// Return `true` to allow certificates that are untrusted/invalid
@@ -24,7 +24,8 @@ namespace Grpc
 				HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 			using var channel = GrpcChannel.ForAddress("http://localhost:50051",
 				new GrpcChannelOptions { HttpHandler = httpHandler });
-			this.client = new GrpcPricer.GrpcPricerClient(channel);
+			var client = new GrpcPricer.GrpcPricerClient(channel);
+			return client;
 
 		}
 
@@ -34,9 +35,6 @@ namespace Grpc
 			stdPrice = 0;
 			deltas = new double[parameters.MathPaymentDates.Length];
 			stdDeltas = new double[parameters.MathPaymentDates.Length];
-			// Je sais si on a vraiment besoin de parameters
-			this.parameters = parameters;
-			Connexion();
 		}
 
 		public void Request(RepeatedField<PastLines> past, bool isMonitoringDate, double t)
@@ -47,9 +45,17 @@ namespace Grpc
 			input.MonitoringDateReached = isMonitoringDate;
 			input.Time = t;
 
-			// Request to gRPC Server
-			var output = client.PriceAndDeltas(input);
+			var httpHandler = new HttpClientHandler();
+			// Return `true` to allow certificates that are untrusted/invalid
+			httpHandler.ServerCertificateCustomValidationCallback =
+				HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+			using var channel = GrpcChannel.ForAddress("http://localhost:50051",
+				new GrpcChannelOptions { HttpHandler = httpHandler });
+			var clien = new GrpcPricer.GrpcPricerClient(channel);
 
+			// Request to gRPC Server
+
+			var output = clien.PriceAndDeltas(input);
 			// Set new values
 			price = output.Price;
 			stdPrice = output.PriceStdDev;
@@ -62,7 +68,6 @@ namespace Grpc
 		}
 
 		//Getters
-
 		public double getPrice()
 		{
 			return price;

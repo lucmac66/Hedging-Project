@@ -14,6 +14,8 @@ public:
     PnlVect *divid_; /// vecteur des dividendes
 
     BlackScholesModel(double interestRate, PnlMat* volatility, PnlVect* divids);
+
+    ~BlackScholesModel();
     /**
      * Génère une trajectoire du modèle et la stocke dans path
      *
@@ -22,8 +24,7 @@ public:
      * @param[in] T  maturité
      * @param[in] nbTimeSteps nombre de dates de constatation
      */
-    void asset(PnlMat *path, PnlRng *rng, double isMonitoring, double currentDate, const PnlMat *past, PnlVect *dates, double epsilon, int j);
+    void asset(PnlMat *path, PnlRng *rng, double isMonitoring, double currentDate, const PnlMat *past, PnlVect *dates);
 
-    void shiftAsset(PnlMat *past, int j, double epsilon);
-
+    void shiftAsset(PnlMat *path, const PnlMat *past, bool isMonitoring, double epsilon, int j);
 };

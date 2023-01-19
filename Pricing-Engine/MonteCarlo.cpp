@@ -12,47 +12,55 @@ MonteCarlo::MonteCarlo(BlackScholesModel *mod, Option *opt, int nbrTirages)
     this->nbrTirages_ = nbrTirages;
 }
 
-MonteCarlo::~MonteCarlo() {}
+MonteCarlo::~MonteCarlo() {
+    opt_->~Option();
+    mod_->~BlackScholesModel();
+}
 
 
-void MonteCarlo::priceAndDeltas(const PnlMat *past, double epsilon, double currentDate, bool isMonitoringDate, PnlVect* prices, PnlVect *deltas, PnlVect *deltasStdDev)
-{
+void MonteCarlo::priceAndDeltas(const PnlMat *past, double currentDate, bool isMonitoringDate, PnlVect *prices, PnlVect *deltas, PnlVect *deltasStdDev, double epsilon) {
     double price = 0;
     double priceStdDev = 0;
+    PnlMat *pathEpsilonP = pnl_mat_create_from_zero(opt_->size_, opt_->size_);
+    PnlMat *pathEpsilonN = pnl_mat_create_from_zero(opt_->size_, opt_->size_);
     PnlMat *path = pnl_mat_create_from_zero(opt_->size_, opt_->size_);
-    double value;
-    double stddevValue;
-    PnlMat *pathEpsilon = pnl_mat_create_from_zero(opt_->size_, opt_->size_);
     double payoff = 0;
-    double payoffEpsilon = 0;
-    pathEpsilon = pnl_mat_create_from_zero((opt_->size_), (opt_->dates_)->size);
+
+    //random Initialisation
     PnlRng *rng = pnl_rng_create(PNL_RNG_MERSENNE);
-    pnl_rng_sseed(rng, time(NULL));
+    pnl_rng_sseed(rng, (unsigned long)time(NULL));
+    // Calcul Prix
+    for (int j = 0; j < nbrTirages_; j++) {
+        mod_->asset(path, rng, isMonitoringDate, currentDate, past, opt_->dates_);
+        payoff = opt_->payoff(path, mod_->r_);
+        price += payoff;
+        priceStdDev += payoff * payoff;
+        for (int i = 0; i < opt_->size_; i++) {
+            double deltapayoff = 0;
 
-    // Calcul des deltas et Prix
-    for (int i = 0; i < opt_->size_; i++) {
-        value = 0.;
-        stddevValue = 0.;
-        for (int j = 0; j < nbrTirages_; j++) {
-            mod_->asset(path, rng, isMonitoringDate, currentDate, past, opt_->dates_, epsilon, i);
-            mod_->asset(pathEpsilon, rng, isMonitoringDate, currentDate, past, opt_->dates_, 0, i);
-            payoff = opt_->payoff(path, mod_->r_);
-            payoffEpsilon = opt_->payoff(pathEpsilon, mod_->r_);
-            value += (payoffEpsilon - payoff);
+            pathEpsilonP = pnl_mat_copy(path);
+            pathEpsilonN = pnl_mat_copy(path);
 
-            stddevValue += (payoffEpsilon - payoff) * (payoffEpsilon - payoff);
-            price += payoff;
-            priceStdDev += payoff * payoff;
+            mod_->shiftAsset(pathEpsilonP, past, isMonitoringDate, epsilon, i);
+            mod_->shiftAsset(pathEpsilonN, past, isMonitoringDate, -1 * epsilon, i);
+
+            deltapayoff = opt_->payoff(pathEpsilonP, mod_->r_) - opt_->payoff(pathEpsilonN, mod_->r_);
+            pnl_vect_set(deltas, i, pnl_vect_get(deltas, i) + deltapayoff);
+            pnl_vect_set(deltasStdDev, i, pnl_vect_get(deltasStdDev, i) + deltapayoff);
         }
-        value /= (epsilon * nbrTirages_);
-        stddevValue = sqrt(stddevValue / (epsilon * nbrTirages_) - value * value);
-        pnl_vect_set(deltas, i, value);
-        pnl_vect_set(deltasStdDev, i, stddevValue);
     }
-    
-    price /= ((opt_->size_)*nbrTirages_);
-    priceStdDev /= ((opt_->size_) * nbrTirages_);
-    priceStdDev = sqrt(priceStdDev - price * price);
+    for (int a = 0; a < opt_->size_; a++) {
+        pnl_vect_set(deltas, a, pnl_vect_get(deltas, a) / (2*epsilon*nbrTirages_));
+        pnl_vect_set(deltasStdDev, a, sqrt(abs(pnl_vect_get(deltasStdDev, a)/ (2*epsilon*nbrTirages_) - pnl_vect_get(deltas, a)*pnl_vect_get(deltas, a))));
+    }
+
+    price /= nbrTirages_;
+    priceStdDev = abs(priceStdDev/nbrTirages_ - price * price);
+    priceStdDev = sqrt(priceStdDev);
     pnl_vect_set(prices, 0, price);
     pnl_vect_set(prices, 1, priceStdDev);
+    pnl_mat_free(&path);
+    pnl_mat_free(&pathEpsilonP);
+    pnl_mat_free(&pathEpsilonN);
+    pnl_rng_free(&rng);
 }

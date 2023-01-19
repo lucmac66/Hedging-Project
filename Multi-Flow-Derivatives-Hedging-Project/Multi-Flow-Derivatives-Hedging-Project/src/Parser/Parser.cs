@@ -16,7 +16,13 @@ namespace ParserTools
 
 		public Parser(String testDocName)
 		{
-			this.parameters = ParameterInfo.JsonUtils.JsonIO.FromJson(testDocName);
+			String jsonText = "";
+			String text = File.ReadAllText(testDocName);
+			foreach (var line in text){
+				jsonText+= line;
+			}
+			Console.WriteLine(jsonText);
+			this.parameters = ParameterInfo.JsonUtils.JsonIO.FromJson(jsonText);
 			this.mathParameters = Converter.Extract(parameters);
 
 		}
